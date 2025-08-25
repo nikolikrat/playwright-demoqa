@@ -1,10 +1,12 @@
 import { test, expect, request } from "@playwright/test";
 import { BookSchema, BooksResponseSchema } from "../schemas/bookSchema";
-import 'dotenv/config';
+import { addBookToUser, cleanupUserBooks, getUserBooks, loginUser } from "../utils/apiHelpers";
+
+const demoqaBaseUrl = 'https://demoqa.com';
 
 test("Scenario 4: Verify Book List API Response Status and Schema", async () => {
   const apiContext = await request.newContext();
-  const response = await apiContext.get("https://demoqa.com/BookStore/v1/Books");
+  const response = await apiContext.get(demoqaBaseUrl + '/BookStore/v1/Books');
   const data = await response.json();
 
   await test.step("Response status is 200 OK", async () => {
@@ -24,30 +26,20 @@ test("Scenario 4: Verify Book List API Response Status and Schema", async () => 
 });
 
 test("Scenario 5: Add a Book to User's Collection via API and verify", async () => {
-  const chosenIsbn = '9781449325862'
-  const apiContext = await request.newContext({ baseURL: 'https://demoqa.com' });
-  const loginResponse = await apiContext.post('/Account/v1/Login', {
-    data: { userName: process.env.USER_NAME, password: process.env.USER_PASSWORD }
-  });
-  const loginData = await loginResponse.json();
-  const { userId, token } = loginData;
+  const chosenIsbn = '9781449325862';
+  const apiContext = await request.newContext({ baseURL: demoqaBaseUrl });
+  const { userId, token } = await loginUser(apiContext);
   const authContext = await request.newContext({
-    baseURL: 'https://demoqa.com',
+    baseURL: demoqaBaseUrl,
     extraHTTPHeaders: {
       Authorization: `Bearer ${token}`,
       'Content-Type': 'application/json'
     }
   });
-  const addBookResp = await authContext.post('/BookStore/v1/Books', {
-    data: {
-      userId: userId,
-      collectionOfIsbns: [{ isbn: chosenIsbn }]
-    }
-  });
-  expect(addBookResp.ok()).toBeTruthy();
-  const getCollectionResp = await authContext.get(`/BookStore/v1/Books?UserId=${userId}`);
-  expect(getCollectionResp.ok()).toBeTruthy();
-  const collectionData = await getCollectionResp.json();
-  const isbnsInCollection = collectionData.books.map((b: any) => b.isbn);
-  expect(isbnsInCollection).toContain(chosenIsbn);
+
+  await cleanupUserBooks(authContext, userId);
+  await addBookToUser(authContext, userId, chosenIsbn);
+
+  const collectionData = await getUserBooks(authContext, userId);
+  expect(collectionData.books).toContainEqual(expect.objectContaining({ isbn: chosenIsbn }));
 });
