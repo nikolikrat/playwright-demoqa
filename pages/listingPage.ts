@@ -20,6 +20,22 @@ export class ListingPage {
     await this.page.goto('https://demoqa.com/books');
   }
 
+  async selectRowsPerPage(count: string) {
+    await this.page.getByLabel('rows per page').selectOption(count);
+  }
+
+  async goToNextPage() {
+    await this.page.getByRole('button', { name: 'Next' }).click();
+  }
+
+  async goToPreviousPage() {
+    await this.page.getByRole('button', { name: 'Previous' }).click();
+  }
+
+  async getBookTitles() {
+    return await this.bookActionItem.allTextContents();
+  }
+
   async searchBook(title: string) {
     await this.searchBox.fill(title);
   }
