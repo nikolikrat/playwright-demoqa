@@ -1,10 +1,10 @@
 import { test, expect } from "@playwright/test";
-import { ListingPage } from "../pages/listingPage";
+import { BooksPage } from "../pages/booksPage";
 
-let listingPage: ListingPage;
+let listingPage: BooksPage;
 
 test.beforeEach(async ({ page }) => {
-  listingPage = new ListingPage(page);
+  listingPage = new BooksPage(page);
   await listingPage.goto();
   await expect(page).toHaveTitle(/DEMOQA/);
 });
